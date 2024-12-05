@@ -1,0 +1,49 @@
+.dark .timeline {
+    background-color: #1c1c1c;
+}
+
+.light .timeline {
+    background-color: #fff;
+}
+
+.dark .timeline-axis {
+    --level2-gridline-color: rgb(224, 224, 224);
+    --level1-gridline-color: rgb(224, 224, 224);
+    --level1-tick-color: rgb(224, 224, 224);
+    --level1-label-color: rgb(224, 224, 224);
+    --level2-tick-color: rgb(224, 224, 224);
+    --level2-label-color: rgb(224, 224, 224);
+}
+
+.light .timeline-axis {
+    --level2-gridline-color: rgb(31, 31, 31);
+    --level1-gridline-color: rgb(31, 31, 31);
+    --level1-tick-color: rgb(31, 31, 31);
+    --level1-label-color: rgb(31, 31, 31);
+    --level2-tick-color: rgb(31, 31, 31);
+    --level2-label-color: rgb(31, 31, 31);
+}
+
+
+.timeline-axis line {
+    shape-rendering: geometricPrecision;
+    stroke-width: 0.5;
+}
+
+.timeline-axis .level1 line {
+    stroke: var(--level1-tick-color);
+}
+
+.timeline-axis .level1 text {
+    color: var(--level1-label-color);
+}
+
+
+.timeline-axis .level2 text {
+    color: var(--level2-label-color);
+}
+
+.timeline-axis .level2-grid line {
+    stroke: var(--level2-gridline-color);
+}
+

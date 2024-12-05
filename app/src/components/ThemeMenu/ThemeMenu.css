@@ -1,0 +1,10 @@
+#theme-switch.ant-switch {
+    /* antd geekblue 10 */
+    /* background: #030852 !important; */
+  }
+  
+  #theme-switch.ant-switch-checked {
+    /* antd yellow 6 */
+    background: #fadb14 !important;
+  }
+  

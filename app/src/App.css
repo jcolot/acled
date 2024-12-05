@@ -1,0 +1,80 @@
+@import url("https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap");
+
+:root {
+    --header-height: 50px
+}
+
+body {
+  margin: 0;
+  font-family: Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+    monospace;
+}
+
+.ant-layout {
+  min-height: 100vh;
+}
+
+.ant-typography {
+  font-family: "Crimson Text", serif;
+}
+
+h1.ant-typography {
+  font-size: 4rem;
+}
+
+h2.ant-typography {
+  font-size: 2.5rem;
+}
+
+span.ant-typography {
+  font-size: 1.5rem;
+}
+
+.dark.ant-layout {
+  background-color: #1c1c1c;
+}
+
+.dark .ant-spin-text {
+  color: white;
+}
+
+.dark .ant-spin-dot-item {
+  background-color: white !important;
+}
+
+.dark .ant-menu-title-content {
+  color: white;
+}
+
+.dark .header-menu {
+  background-color: #1c1c1c;
+}
+
+/* LIGHT  THEME */
+
+.light.ant-layout {
+  /* background-color: white; */
+}
+
+.light .ant-spin-text {
+  color: black;
+}
+
+.light .ant-spin-dot-item {
+  background-color: black !important;
+}
+
+.light .ant-spin-text {
+  color: white;
+}
+
+.light .header-menu {
+  background-color: white;
+}
+

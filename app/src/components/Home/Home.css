@@ -1,0 +1,11 @@
+#home .ant-layout-content {
+  margin-top: 0;
+}
+
+#home .ant-menu-item-selected::after {
+  border-bottom-color: white !important;
+}
+
+#home .ant-menu-item:hover::after {
+  border-bottom-color: white !important;
+}

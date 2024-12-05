@@ -1,0 +1,40 @@
+{
+  "plugins": ["testcafe", "react", "@typescript-eslint"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:testcafe/recommended",
+    "react-app",
+    "google",
+    "prettier",
+    "plugin:@typescript-eslint/eslint-recommended",
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "env": {
+    "es2020": true,
+    "browser": true,
+    "node": true,
+    "mocha": true
+  },
+  "rules": {
+    "new-cap": "off",
+    "require-jsdoc": "off",
+    "@typescript-eslint/no-empty-function": "off",
+    "no-invalid-this": "off",
+    "@typescript-eslint/ban-ts-comment": "off",
+    "@typescript-eslint/no-explicit-any": "off",
+    "max-len": [
+      "warn",
+      {
+        "code": 150,
+        "ignorePattern": "^(import|export).*$",
+        "ignoreTemplateLiterals": true,
+        "ignoreUrls": true,
+        "ignoreTrailingComments": true,
+        "ignoreComments": true,
+        "ignoreStrings": true
+      }
+    ]
+  }
+}
+
