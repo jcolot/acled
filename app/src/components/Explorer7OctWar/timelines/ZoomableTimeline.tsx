@@ -6,15 +6,14 @@ import { useContext } from "react";
 import * as d3 from "d3";
 import { GlobalStateContext } from "../../../contexts/GlobalStateContext";
 import * as Plot from "@observablehq/plot";
-import toCamelCase from "../../../utils/toCamelCase";
-import { flatten } from "lodash";
-
-const species = ["aedes-albopictus", "aedes-aegypti", "aedes-japonicus", "aedes-koreicus", "culex-pipiens"];
-const speciesKeys = species.map((s) => {
-  return `${toCamelCase(s)}ReportCount`;
-});
 
 const createTimeline = (data, categories, options: any) => {
+  const categoryKeys = categories.map(({ id }) => {
+    return `actor${id}ReportCount`;
+  });
+
+  const categoryColors = categories.map(({ color }) => color.toRgb()).map(({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, ${a})`);
+  console.log(categories);
   const axis = {};
   const nodes = {};
   let zooming = false;
@@ -155,8 +154,9 @@ const createTimeline = (data, categories, options: any) => {
 
     const update = (newData) => {
       data = newData;
-      const stack = d3.stack().keys(speciesKeys).order(d3.stackOrderNone).offset(d3.stackOffsetNone);
+      const stack = d3.stack().keys(categoryKeys).order(d3.stackOrderNone).offset(d3.stackOffsetNone);
       const stackedData = data.length ? stack(data) : [];
+      console.log(stackedData, data);
 
       const plot = Plot.plot({
         padding: 0,
@@ -168,19 +168,20 @@ const createTimeline = (data, categories, options: any) => {
         x: { domain: xScale.domain(), axis: null },
         y: { grid: true },
         marks: [
-          stackedData.map((speciesData, i) =>
-            Plot.rectY(speciesData, {
+          stackedData.map((actorData, i) => {
+            console.log(actorData);
+            return Plot.rectY(actorData, {
               x1: (d) => d.data.start,
               x2: (d) => d.data.end,
               y1: (d) => {
                 return d[0];
               },
               y2: (d) => d[1],
-              fill: colorScheme[i],
+              fill: categoryColors[i],
               insetLeft: 0.2,
               insetRight: 0.2,
-            }),
-          ),
+            });
+          }),
           Plot.rectY(data, {
             x1: (d) => d.start,
             x2: (d) => d.end,
@@ -295,7 +296,7 @@ const createTimeline = (data, categories, options: any) => {
 };
 
 const ZoomableTimeline = forwardRef(function Timeline(
-  { data, height, domain, visibleDomain, colorScheme, selectedPeriod, onZoom, onItemClick, style },
+  { data, categories, height, domain, visibleDomain, colorScheme, selectedPeriod, onZoom, onItemClick, style },
   fwdRef,
 ) {
   const { globalState } = useContext(GlobalStateContext);
@@ -330,8 +331,7 @@ const ZoomableTimeline = forwardRef(function Timeline(
 
   useEffect(() => {
     if (containerRef.current && width) {
-      const { node } = (timelineRef.current = createTimeline({
-        data,
+      const { node } = (timelineRef.current = createTimeline(data, categories, {
         domain,
         visibleDomain,
         selectedPeriod,

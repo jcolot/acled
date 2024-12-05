@@ -15,7 +15,7 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
     <div className={"list-select"} style={style}>
       <style>{`
         .list-select .ant-list-header { padding: 10px 10px !important; }
-        .list-select .ant-list-actor { padding: 10px 16px !important; }
+        .list-select .ant-list-actor { padding: 10px 8px 10px 16px !important; }
        `}</style>
       <List
         className="select-list"
@@ -23,7 +23,7 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
         style={{ width: "100%" }}
         bordered
         renderItem={(actor) => (
-          <List.Item style={{ display: "flex", justifyContent: "space-between" }}>
+          <List.Item style={{ display: "flex", justifyContent: "space-between", paddingInline: 16 }}>
             {actor.name}
             <div style={{ display: "flex", gap: 3 }}>
               <ColorPicker format="HEX" defaultValue="#1677ff" onChange={(color) => onColorChange(actor.id, color)} />

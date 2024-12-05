@@ -133,7 +133,6 @@ const Explorer7OctWar = () => {
     pointType: "circle",
     pickable: false,
     getFillColor: (d) => {
-      console.log(d.properties.color);
       const { r, g, b, a } = d.properties.color;
       return [r, g, b, a * 255];
     },
@@ -178,10 +177,14 @@ const Explorer7OctWar = () => {
         acled_reports;
     `;
       const data = await duckDBClient.query(query);
-      return Object.values(data.toArray().map((row) => row.toJSON())[0]).sort();
+      return Object.values(data.toArray().map((row) => row.toJSON())[0])
+        .sort()
+        .map((timestamp) => new Date(timestamp * 1000));
     },
     { enabled: !!duckDBClient },
   );
+
+  console.log(dataTimeDomain);
 
   const { data: actors } = useQuery(
     ["actors"],
@@ -217,7 +220,7 @@ const Explorer7OctWar = () => {
             acled_reports
           WHERE 
             actor_id IN (${selectedActors.map(({ id }) => id).join(", ")}) 
-            AND make_timestamp(timestamp) BETWEEN '${visibleTimelineDomain[0].toISOString()}'::TIMESTAMP AND '${visibleTimelineDomain[1].toISOString()}'::TIMESTAMP
+            AND make_timestamp(timestamp * 1000000) BETWEEN '${visibleTimelineDomain[0].toISOString()}'::TIMESTAMP AND '${visibleTimelineDomain[1].toISOString()}'::TIMESTAMP
             AND latitude BETWEEN ${mapBounds.minLat} AND ${mapBounds.maxLat} 
             AND longitude BETWEEN ${mapBounds.minLng} AND ${mapBounds.maxLng}
         GROUP BY h3_parent_index), 
@@ -234,10 +237,10 @@ const Explorer7OctWar = () => {
 
       const timelineQuery = `
         SELECT
-            TIME_BUCKET(INTERVAL '${timeBucket}', make_timestamp(timestamp)) AS start,
+            TIME_BUCKET(INTERVAL '${timeBucket}', make_timestamp(timestamp * 1000000)) AS start,
             TIME_BUCKET(
                 INTERVAL '${timeBucket}',
-                TIME_BUCKET(INTERVAL '${timeBucket}', make_timestamp(timestamp)) + INTERVAL '${timeBucket}'
+                TIME_BUCKET(INTERVAL '${timeBucket}', make_timestamp(timestamp * 1000000)) + INTERVAL '${timeBucket}'
             ) AS end,
             ${selectedActors.map(({ id }) => `SUM(CASE WHEN actor_id = '${id}' THEN 1 ELSE 0 END)::INTEGER AS actor${id}ReportCount`).join(", ")},
             SUM(CASE WHEN actor_id IN (${selectedActors.map(({ id }) => id).join(", ")}) THEN 1 ELSE 0 END)::INTEGER AS totalReportCount,
@@ -245,11 +248,11 @@ const Explorer7OctWar = () => {
             acled_reports
         WHERE
             actor_id IN (${selectedActors.map(({ id }) => id).join(", ")}) 
-            AND make_timestamp(timestamp) BETWEEN '${visibleTimelineDomain[0].toISOString()}'::TIMESTAMP AND '${visibleTimelineDomain[1].toISOString()}'::TIMESTAMP
+            AND make_timestamp(timestamp * 1000000) BETWEEN '${visibleTimelineDomain[0].toISOString()}'::TIMESTAMP AND '${visibleTimelineDomain[1].toISOString()}'::TIMESTAMP
             AND h3_cell_to_lat(CONCAT('0x', h3_index)::UBIGINT) BETWEEN ${mapBounds.minLat} AND ${mapBounds.maxLat} 
             AND h3_cell_to_lng(CONCAT('0x', h3_index)::UBIGINT) BETWEEN ${mapBounds.minLng} AND ${mapBounds.maxLng}
         GROUP BY
-            TIME_BUCKET(INTERVAL '${timeBucket}', make_timestamp(timestamp))
+            TIME_BUCKET(INTERVAL '${timeBucket}', make_timestamp(timestamp * 1000000))
         ORDER BY
             start;
       `;
@@ -361,10 +364,10 @@ const Explorer7OctWar = () => {
       // Query the full time range, to display in the brushable timeline
       const brushableTimelineQuery = `
         SELECT
-            TIME_BUCKET(INTERVAL '1 week', make_timestamp(timestamp)) AS start,
+            TIME_BUCKET(INTERVAL '1 week', make_timestamp(timestamp * 1000000)) AS start,
             TIME_BUCKET(
                 INTERVAL '1 week',
-                TIME_BUCKET(INTERVAL '1 week', make_timestamp(timestamp)) + INTERVAL '1 week'
+                TIME_BUCKET(INTERVAL '1 week', make_timestamp(timestamp * 1000000)) + INTERVAL '1 week'
             ) AS end,
             ${selectedActors.map(({ id }) => `SUM(CASE WHEN actor_id = '${id}' THEN 1 ELSE 0 END)::INTEGER AS "actor${id}ReportCount"`).join(", ")},
             SUM(CASE WHEN actor_id IN (${selectedActors.map(({ id }) => id).join(", ")}) THEN 1 ELSE 0 END)::INTEGER AS totalReportCount,
@@ -375,7 +378,7 @@ const Explorer7OctWar = () => {
             AND h3_cell_to_lat(CONCAT('0x', h3_index)::UBIGINT) BETWEEN ${mapBounds.minLat} AND ${mapBounds.maxLat} 
             AND h3_cell_to_lng(CONCAT('0x', h3_index)::UBIGINT) BETWEEN ${mapBounds.minLng} AND ${mapBounds.maxLng}
         GROUP BY
-            TIME_BUCKET(INTERVAL '1 week', make_timestamp(timestamp))
+            TIME_BUCKET(INTERVAL '1 week', make_timestamp(timestamp * 1000000))
         ORDER BY
             start;
       `;
@@ -457,6 +460,7 @@ const Explorer7OctWar = () => {
         }
         return prevTimeBucket;
       });
+      console.log(visibleDomain);
       setVisibleTimelineDomain(visibleDomain);
       brushableTimelineRef.current && brushableTimelineRef.current.setBrushedDomain(visibleDomain);
     }, 100),
@@ -511,64 +515,6 @@ const Explorer7OctWar = () => {
         </div>
       )}
       <div className="map-container">
-        <div
-          className={"map-legend"}
-          style={{
-            position: "absolute",
-            top: 60,
-            left: 10,
-            zIndex: 1000,
-            color: globalState.theme === "DARK" ? "#ffffff" : "#000000",
-            padding: 10,
-            borderRadius: 5,
-            fontSize: 12,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: "bold",
-              marginBottom: 5,
-            }}
-          >
-            Actors
-          </div>
-          <div className={"map-legend-item"}>
-            <span
-              className={"map-legend-item-color"}
-              style={{ backgroundColor: paletteHex[0], display: "inline-block", width: 10, height: 10, borderRadius: 5, marginRight: 5 }}
-            />
-            <span className={"map-legend-item-text"}>Aedes Albopictus</span>
-          </div>
-          <div className={"map-legend-item"}>
-            <span
-              className={"map-legend-item-color"}
-              style={{ backgroundColor: paletteHex[1], display: "inline-block", width: 10, height: 10, borderRadius: 5, marginRight: 5 }}
-            />
-            <span className={"map-legend-item-text"}>Aedes Aegypti</span>
-          </div>
-          <div className={"map-legend-item"}>
-            <span
-              className={"map-legend-item-color"}
-              style={{ backgroundColor: paletteHex[2], display: "inline-block", width: 10, height: 10, borderRadius: 5, marginRight: 5 }}
-            />
-            <span className={"map-legend-item-text"}>Aedes Japonicus</span>
-          </div>
-          <div className={"map-legend-item"}>
-            <span
-              className={"map-legend-item-color"}
-              style={{ backgroundColor: paletteHex[3], display: "inline-block", width: 10, height: 10, borderRadius: 5, marginRight: 5 }}
-            />
-            <span className={"map-legend-item-text"}>Aedes Koreicus</span>
-          </div>
-          <div className={"map-legend-item"}>
-            <span
-              className={"map-legend-item-color"}
-              style={{ backgroundColor: paletteHex[4], display: "inline-block", width: 10, height: 10, borderRadius: 5, marginRight: 5 }}
-            />
-            <span className={"map-legend-item-text"}>Culex Pipiens</span>
-          </div>
-        </div>
         <div
           style={{
             position: "absolute",
@@ -739,6 +685,7 @@ const Explorer7OctWar = () => {
           <ZoomableTimeline
             ref={timelineRef}
             data={timelineData}
+            categories={selectedActors}
             colorScheme={paletteHex}
             height={120}
             style={{ width: "100%", position: "relative" }}
