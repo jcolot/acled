@@ -342,7 +342,7 @@ const ZoomableTimeline = forwardRef(function Timeline(
       containerRef.current.innerHTML = "";
       containerRef.current.appendChild(node);
     }
-  }, [width, height, theme, domain]);
+  }, [width, height, theme, domain, categories]);
 
   useEffect(() => {
     if (timelineRef.current && data) {

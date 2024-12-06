@@ -188,7 +188,7 @@ const Explorer7OctWar = () => {
     ["actors"],
     async () => {
       const query = `
-      S/acELECT DISTINCT actor_name as name, actor_id::INT AS id FROM acled_reports;
+      SELECT DISTINCT actor_name as name, actor_id::INT AS id FROM acled_reports;
     `;
       const data = await duckDBClient.query(query);
       const actors = Object.values(data.toArray().map((row) => row.toJSON()));
@@ -210,15 +210,13 @@ const Explorer7OctWar = () => {
     { enabled: !!duckDBClient },
   );
 
-  console.log(eventTypes);
-
   useEffect(() => {
     const fetchData = async (duckDBClient) => {
       const mapH3AggregationQuery = `
         WITH avg_ij AS (
           SELECT 
-            ${selectedActors.map(({ id }) => `SUM(CASE WHEN actor_id = ${id} THEN 1 ELSE 0 END) AS "actor${id}ReportCount"`).join(", ")},
             SUM(CASE WHEN actor_id IN (${selectedActors.map(({ id }) => id).join(", ")}) THEN 1 ELSE 0 END) AS totalReportCount,
+            ${selectedActors.map(({ id }) => `SUM(CASE WHEN actor_id = ${id} THEN 1 ELSE 0 END) AS "actor${id}ReportCount"`).join(", ")},
             h3_cell_to_parent(h3_index, ${h3Resolution}) as h3_parent_index,
             h3_cell_to_center_child(h3_parent_index, 15) as h3_parent_center_index,
             AVG(h3_cell_to_local_ij(
@@ -270,12 +268,16 @@ const Explorer7OctWar = () => {
             start;
       `;
 
-      const mapTable = await duckDBClient.query(mapH3AggregationQuery);
+      let mapTable = [];
+      let timelineData = [];
 
-      const mapTableArray = mapTable.toArray().map((row) => row.toJSON());
-
-      const timelineTable = await duckDBClient.query(timelineQuery);
-      const timelineData = timelineTable.toArray().map((row) => row.toJSON());
+      if (selectedActors.length > 0) {
+        console.log("fetching data...");
+        const mapArrow = await duckDBClient.query(mapH3AggregationQuery);
+        const timelineArrow = await duckDBClient.query(timelineQuery);
+        mapTable = mapArrow.toArray().map((row) => row.toJSON());
+        timelineData = timelineArrow.toArray().map((row) => row.toJSON());
+      }
 
       await setLoading(true);
       const zoom = mapRef.current?.getZoom() || 15;
@@ -292,14 +294,14 @@ const Explorer7OctWar = () => {
       if (aggregationType === "h3") maxRadiusPixels = getMaxRadius(h3Resolution, zoom, latitude, longitude, "pixels");
       if (aggregationType === "supercluster") maxRadiusPixels = superClusterMaxRadiusPixels;
 
-      const maxReportCount = mapTableArray.reduce((acc, curr) => {
+      const maxReportCount = mapTable.reduce((acc, curr) => {
         if (curr.totalReportCount > acc) {
           return curr.totalReportCount;
         }
         return acc;
       }, 0);
 
-      features = mapTableArray
+      features = mapTable
         .map((row) => {
           const metersByLatitudeDegree = 111111;
           const metersByLongitudeDegree = (Math.PI * 6371000 * Math.cos((row.latitude * Math.PI) / 180)) / 180;
@@ -350,7 +352,7 @@ const Explorer7OctWar = () => {
         })
         .flat();
 
-      const h3Indexes = mapTableArray
+      const h3Indexes = mapTable
         .filter((row) => row.h3Index)
         .map((row) => {
           return { ...row, h3Index: BigInt(row?.h3Index?.toString()).toString(16) };
@@ -394,6 +396,9 @@ const Explorer7OctWar = () => {
             start;
       `;
 
+      if (selectedActors.length === 0) {
+        return { brushableTimelineData: [] };
+      }
       const brushableTimelineTable = await duckDBClient.query(brushableTimelineQuery);
       const brushableTimelineData = brushableTimelineTable.toArray().map((row) => row.toJSON());
 

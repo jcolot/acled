@@ -1,13 +1,11 @@
 import React, { useContext } from "react";
 import { Layout, Menu, Row, Col, theme } from "antd";
 import ThemeMenu from "../ThemeMenu/ThemeMenu";
-import UserMenu from "../UserMenu/UserMenu";
 import "./HeaderMenu.css";
 import { useMatches, Link } from "react-router-dom";
 import { menuRoutes } from "../../routes";
 import { GlobalStateContext } from "../../contexts/GlobalStateContext";
-import logoWhite from "../../assets/images/UHasselt_logo-white.png";
-import logoBlack from "../../assets/images/UHasselt_logo-black.png";
+import logo from "../../assets/images/2024-ACLED-Horizontal-Logo-420.webp";
 
 const { Header } = Layout;
 const { useToken } = theme;
@@ -41,12 +39,15 @@ const HeaderMenu = ({}) => {
             overflow: "hidden",
           }}
         >
-          <img
-            src={theme === "DARK" ? logoWhite : logoBlack}
-            alt="logo"
-            className="header-logo"
-            style={{ height: 36, position: "relative", top: 7, left: 8 }}
-          />
+          <span style={{ marginLeft: 16, display: "flex", alignItems: "center" }}>With data from </span>
+          <a href="https://acleddata.com/" target="_blank" rel="noreferrer">
+            <img
+              src={logo}
+              alt="logo"
+              className="header-logo"
+              style={{ height: 36, position: "relative", top: 7, left: 8, filter: `grayscale(1)` }}
+            />
+          </a>
         </Col>
         <Col
           xs={8}
@@ -57,17 +58,17 @@ const HeaderMenu = ({}) => {
             height: "100%",
           }}
         >
-          <Menu
-            style={{
-              minWidth: 0,
-              flex: "auto",
-              color: `${token.colorText} !important`,
-              borderBottom: 0,
-            }}
-            items={items}
-            selectedKeys={[selectedKey]}
-            mode="horizontal"
-          />
+          {/* <Menu */}
+          {/*   style={{ */}
+          {/*     minWidth: 0, */}
+          {/*     flex: "auto", */}
+          {/*     color: `${token.colorText} !important`, */}
+          {/*     borderBottom: 0, */}
+          {/*   }} */}
+          {/*   items={items} */}
+          {/*   selectedKeys={[selectedKey]} */}
+          {/*   mode="horizontal" */}
+          {/* /> */}
         </Col>
         <Col
           xs={8}
