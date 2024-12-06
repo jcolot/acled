@@ -13,7 +13,6 @@ const createTimeline = (data, categories, options: any) => {
   });
 
   const categoryColors = categories.map(({ color }) => color.toRgb()).map(({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, ${a})`);
-  console.log(categories);
   const axis = {};
   const nodes = {};
   let zooming = false;
@@ -156,7 +155,6 @@ const createTimeline = (data, categories, options: any) => {
       data = newData;
       const stack = d3.stack().keys(categoryKeys).order(d3.stackOrderNone).offset(d3.stackOffsetNone);
       const stackedData = data.length ? stack(data) : [];
-      console.log(stackedData, data);
 
       const plot = Plot.plot({
         padding: 0,
@@ -169,7 +167,6 @@ const createTimeline = (data, categories, options: any) => {
         y: { grid: true },
         marks: [
           stackedData.map((actorData, i) => {
-            console.log(actorData);
             return Plot.rectY(actorData, {
               x1: (d) => d.data.start,
               x2: (d) => d.data.end,

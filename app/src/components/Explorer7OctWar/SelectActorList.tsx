@@ -7,7 +7,9 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
   const [selectedActors, setSelectedActors] = useState([]);
 
   const onColorChange = (id: string, color: string) => {
-    onChange(selectedActors.map((actor) => (actor.id === id ? { ...actor, color } : actor)));
+    const newSelectedActors = selectedActors.map((actor) => (actor.id === id ? { ...actor, color } : actor));
+    setSelectedActors(newSelectedActors);
+    onChange(newSelectedActors);
   };
   const onSearch = (value: string) => {};
 
@@ -26,7 +28,7 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
           <List.Item style={{ display: "flex", justifyContent: "space-between", paddingInline: 16 }}>
             {actor.name}
             <div style={{ display: "flex", gap: 3 }}>
-              <ColorPicker format="HEX" defaultValue="#1677ff" onChange={(color) => onColorChange(actor.id, color)} />
+              <ColorPicker format="rgb" defaultValue="rgba(10, 20, 250, 125)" onChange={(color) => onColorChange(actor.id, color)} />
               <Button
                 icon={<MinusOutlined />}
                 onClick={() => {
@@ -62,6 +64,7 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
                 setSelectedActors((selectedActors) => {
                   const newActors = [...selectedActors, { ...actor, color: new ColorFactory("#1677ff") }];
                   onChange(newActors);
+                  console.log("newActors: ", newActors);
                   return newActors;
                 });
               }}

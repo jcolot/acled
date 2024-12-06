@@ -184,13 +184,11 @@ const Explorer7OctWar = () => {
     { enabled: !!duckDBClient },
   );
 
-  console.log(dataTimeDomain);
-
   const { data: actors } = useQuery(
     ["actors"],
     async () => {
       const query = `
-      SELECT DISTINCT actor AS name, actor_id::INT AS id FROM acled_reports;
+      S/acELECT DISTINCT actor_name as name, actor_id::INT AS id FROM acled_reports;
     `;
       const data = await duckDBClient.query(query);
       const actors = Object.values(data.toArray().map((row) => row.toJSON()));
@@ -198,6 +196,21 @@ const Explorer7OctWar = () => {
     },
     { enabled: !!duckDBClient },
   );
+
+  const { data: eventTypes } = useQuery(
+    ["event-types"],
+    async () => {
+      const query = `
+      SELECT DISTINCT event_type, event_type_id::INT AS id FROM acled_reports;
+    `;
+      const data = await duckDBClient.query(query);
+      const eventTypes = Object.values(data.toArray().map((row) => row.toJSON()));
+      return eventTypes;
+    },
+    { enabled: !!duckDBClient },
+  );
+
+  console.log(eventTypes);
 
   useEffect(() => {
     const fetchData = async (duckDBClient) => {
@@ -258,8 +271,6 @@ const Explorer7OctWar = () => {
       `;
 
       const mapTable = await duckDBClient.query(mapH3AggregationQuery);
-
-      console.timeEnd("data query");
 
       const mapTableArray = mapTable.toArray().map((row) => row.toJSON());
 
@@ -460,7 +471,6 @@ const Explorer7OctWar = () => {
         }
         return prevTimeBucket;
       });
-      console.log(visibleDomain);
       setVisibleTimelineDomain(visibleDomain);
       brushableTimelineRef.current && brushableTimelineRef.current.setBrushedDomain(visibleDomain);
     }, 100),
@@ -518,7 +528,7 @@ const Explorer7OctWar = () => {
         <div
           style={{
             position: "absolute",
-            top: 165,
+            top: 35,
             left: 10,
             zIndex: 1000,
             color: globalState.theme === "DARK" ? "#ffffff" : "#000000",
