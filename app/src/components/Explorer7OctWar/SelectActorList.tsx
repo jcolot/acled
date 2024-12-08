@@ -5,6 +5,8 @@ import { ColorFactory } from "antd/es/color-picker/color";
 
 const SelectActorList: React.FC = ({ onChange, actors, style }) => {
   const [selectedActors, setSelectedActors] = useState([]);
+  const [selectValue, setSelectValue] = useState(undefined);
+  const [placeholder, setPlaceholder] = useState("Select an actor");
 
   const onColorChange = (id: string, color: string) => {
     const newSelectedActors = selectedActors.map((actor) => (actor.id === id ? { ...actor, color } : actor));
@@ -57,16 +59,22 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
             <Select
               style={{ width: "100%", margin: 0 }}
               showSearch
-              placeholder="Select an actor"
+              placeholder={placeholder}
               optionFilterProp="label"
+              value={selectValue}
+              defaultValue={undefined}
+              autoClearSearchValue={true}
+              onFocus={() => console.log("focus")}
+              onBlur={() => console.log("blur")}
               onChange={(value) => {
                 const actor = actors.find(({ id }) => id === value);
                 setSelectedActors((selectedActors) => {
                   const newActors = [...selectedActors, { ...actor, color: new ColorFactory("#1677ff") }];
                   onChange(newActors);
-                  console.log("newActors: ", newActors);
                   return newActors;
                 });
+                setSelectValue(null);
+                setPlaceholder(actor.name);
               }}
               onSearch={onSearch}
               options={(actors || [])

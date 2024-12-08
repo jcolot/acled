@@ -8,14 +8,13 @@ import { GlobalStateContext } from "../../../contexts/GlobalStateContext";
 import * as Plot from "@observablehq/plot";
 import toCamelCase from "../../../utils/toCamelCase";
 
-const species = ["aedes-albopictus", "aedes-aegypti", "aedes-japonicus", "aedes-koreicus", "culex-pipiens"];
-const speciesKeys = species.map((s) => {
-  return `${toCamelCase(s)}ReportCount`;
-});
+const createTimeline = (data, categories, metric, options: any) => {
+  const categoryKeys = (categories || []).map(({ id }) => {
+    return `actor${id}${metric}`;
+  });
+  const categoryColors = categories.map(({ color }) => color.toRgb()).map(({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, ${a})`);
 
-const createTimeline = (options: any) => {
-  const { data, brushedDomain, domain, height, width, onBrush, theme, colorScheme } = {
-    data: [],
+  const { brushedDomain, domain, height, width, onBrush, theme, colorScheme } = {
     min: new Date().setFullYear(new Date().getFullYear() - 1),
     max: new Date().setFullYear(new Date().getFullYear() + 1),
     domain: [new Date().setMonth(new Date().getMonth() - 1), new Date()],
@@ -55,7 +54,7 @@ const createTimeline = (options: any) => {
 
     const update = (newData) => {
       data = newData;
-      const stack = d3.stack().keys(speciesKeys).order(d3.stackOrderNone).offset(d3.stackOffsetNone);
+      const stack = d3.stack().keys(categoryKeys).order(d3.stackOrderNone).offset(d3.stackOffsetNone);
       const stackedData = data.length ? stack(data) : [];
 
       const plot = Plot.plot({
@@ -68,13 +67,13 @@ const createTimeline = (options: any) => {
         height,
         x: { domain: xScale.domain(), axis: null },
         y: { grid: true, axis: null },
-        marks: stackedData.map((speciesData, i) => {
-          return Plot.rectY(speciesData, {
-            x1: (d) => d.data.start.getTime(),
-            x2: (d) => d.data.end.getTime(),
+        marks: stackedData.map((actorData, i) => {
+          return Plot.rectY(actorData, {
+            x1: (d) => d.data.start,
+            x2: (d) => d.data.end,
             y1: (d) => d[0],
             y2: (d) => d[1],
-            fill: colorScheme[i],
+            fill: categoryColors[i],
             insetLeft: 0.2,
             insetRight: 0.2,
           });
@@ -106,7 +105,7 @@ const createTimeline = (options: any) => {
     brushSvg.call(brush);
 
     const setBrushedDomain = (newBrushedDomain) => {
-      brushSvg.call(brush.move, newBrushedDomain.map(xScale));
+      brushSvg.call(brush.move, (newBrushedDomain || []).map(xScale));
     };
 
     setBrushedDomain(brushedDomain);
@@ -123,7 +122,10 @@ const createTimeline = (options: any) => {
   return setup(data);
 };
 
-const BrushableTimeline = forwardRef(function BrushableTimeline({ data, height, domain, brushedDomain, onBrush, colorScheme, style }, fwdRef) {
+const BrushableTimeline = forwardRef(function BrushableTimeline(
+  { data, categories, metric, height, domain, brushedDomain, onBrush, colorScheme, style },
+  fwdRef,
+) {
   const { globalState } = useContext(GlobalStateContext);
   const { theme } = globalState;
   const { width } = useWindowSize();
@@ -156,8 +158,7 @@ const BrushableTimeline = forwardRef(function BrushableTimeline({ data, height, 
 
   useEffect(() => {
     if (containerRef.current && width) {
-      const { update, zoomTo, element } = (timelineRef.current = createTimeline({
-        data,
+      const { update, zoomTo, element } = (timelineRef.current = createTimeline(data, categories, metric, {
         domain,
         brushedDomain,
         height,
@@ -171,7 +172,7 @@ const BrushableTimeline = forwardRef(function BrushableTimeline({ data, height, 
       timelineRef.current.update = update;
       timelineRef.current.zoomTo = zoomTo;
     }
-  }, [width, theme, domain, brushedDomain, height]);
+  }, [width, theme, domain, brushedDomain, height, categories, metric]);
 
   useEffect(() => {
     if (timelineRef.current && data) {

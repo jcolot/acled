@@ -7,9 +7,9 @@ import * as d3 from "d3";
 import { GlobalStateContext } from "../../../contexts/GlobalStateContext";
 import * as Plot from "@observablehq/plot";
 
-const createTimeline = (data, categories, options: any) => {
+const createTimeline = (data, categories, metric, options: any) => {
   const categoryKeys = categories.map(({ id }) => {
-    return `actor${id}ReportCount`;
+    return `actor${id}${metric}`;
   });
 
   const categoryColors = categories.map(({ color }) => color.toRgb()).map(({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, ${a})`);
@@ -183,16 +183,59 @@ const createTimeline = (data, categories, options: any) => {
             x1: (d) => d.start,
             x2: (d) => d.end,
             channels: {},
-            tip: {
-              anchor: "bottom",
-              format: {
-                x: false,
-                y: false,
-              },
-            },
             fill: "transparent",
             y: (d) => {
-              return d.totalReportCount;
+              return d[`total${metric}`];
+            },
+            render: (index, scales, values, dimensions, context, next) => {
+              const g = next(index, scales, values, dimensions, context, next);
+              const children = d3.select(g).selectChildren();
+              children
+                .on("click", function (event, i) {
+                  const selection = d3.select(event.target);
+                  const datum = data[i];
+                })
+                .on("mouseover", function (event, i) {
+                  const div = document.createElement("div");
+                  document.querySelector(".timeline-tooltip")?.remove();
+                  div.style.position = "absolute";
+                  div.style.pointerEvents = "none";
+                  div.className = "timeline-tooltip";
+                  const innerHTML = categories.map((category) => {
+                    return `<div style="display: flex; align-items: center; margin-bottom: 5px;">
+                      <div style="width: 10px; height: 10px; background-color: ${category.color.toRgbString()}; border-radius: 50%; margin-right: 5px;"></div>
+                      <span style="font-size: 10px;">${category.name}:</span>
+                      <span style="font-size: 10px; margin-left: 5px;">${data[i][`actor${category.id}${metric}`]}</span> 
+                    </div>`;
+                  });
+                  div.innerHTML = innerHTML.join("");
+                  document.body.appendChild(div);
+                  div.style.visibility = "hidden";
+                  const divHeight = div.getBoundingClientRect().height;
+                  const divWidth = div.getBoundingClientRect().width;
+                  div.style.top = event.pageY - divHeight - 10 + "px";
+                  div.style.left = event.pageX - divWidth / 2 + "px";
+                  div.style.visibility = "visible";
+                  div.style.backgroundColor = "white";
+                  div.style.fontSize = "10px";
+                  div.style.padding = "10px";
+                  div.style.border = "1px solid black";
+                  div.style.zIndex = 10000;
+                })
+                .on("mousemove", function (event) {
+                  const div = document.querySelector(".timeline-tooltip");
+                  if (div) {
+                    const divHeight = div.getBoundingClientRect().height;
+                    const divWidth = div.getBoundingClientRect().width;
+                    div.style.top = event.pageY - divHeight - 10 + "px";
+                    div.style.left = event.pageX - divWidth / 2 + "px";
+                  }
+                })
+                .on("mouseout", function () {
+                  document.querySelector(".timeline-tooltip")?.remove();
+                });
+
+              return g;
             },
           }),
           Plot.ruleY([0]),
@@ -293,7 +336,7 @@ const createTimeline = (data, categories, options: any) => {
 };
 
 const ZoomableTimeline = forwardRef(function Timeline(
-  { data, categories, height, domain, visibleDomain, colorScheme, selectedPeriod, onZoom, onItemClick, style },
+  { data, categories, metric, height, domain, visibleDomain, colorScheme, selectedPeriod, onZoom, onItemClick, style },
   fwdRef,
 ) {
   const { globalState } = useContext(GlobalStateContext);
@@ -328,7 +371,7 @@ const ZoomableTimeline = forwardRef(function Timeline(
 
   useEffect(() => {
     if (containerRef.current && width) {
-      const { node } = (timelineRef.current = createTimeline(data, categories, {
+      const { node } = (timelineRef.current = createTimeline(data, categories, metric, {
         domain,
         visibleDomain,
         selectedPeriod,
@@ -342,7 +385,7 @@ const ZoomableTimeline = forwardRef(function Timeline(
       containerRef.current.innerHTML = "";
       containerRef.current.appendChild(node);
     }
-  }, [width, height, theme, domain, categories]);
+  }, [width, height, theme, domain, categories, metric]);
 
   useEffect(() => {
     if (timelineRef.current && data) {
