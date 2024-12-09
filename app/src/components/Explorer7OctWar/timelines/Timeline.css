@@ -47,14 +47,4 @@
     stroke: var(--level2-gridline-color);
 }
 
-.timeline-tooltip::after {
-    content: "";
-    position: absolute;
-    bottom: -10px; /* Position below the tooltip */
-    left: 50%;     /* Center the triangle */
-    transform: translateX(-50%);
-    border-width: 5px;
-    border-style: solid;
-    border-color: black transparent transparent transparent;
-}
 

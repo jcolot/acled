@@ -13,7 +13,7 @@ import type { Feature } from "geojson";
 import * as d3 from "d3";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import * as h3 from "h3-js";
-import { Button, Drawer, Segmented, Select, Spin } from "antd";
+import { Button, Drawer, Modal, Segmented, Select, Spin } from "antd";
 import Label from "../UI/Label";
 import { SettingOutlined } from "@ant-design/icons";
 import useStore from "../../hooks/useStore";
@@ -21,6 +21,7 @@ import BrushableTimeline from "./timelines/BrushableTimeline";
 import { useQuery } from "@tanstack/react-query";
 import CircleLegend from "./legends/CircleLegend";
 import colorBrewer from "./colorBrewer";
+import EventTable from "./EventTable";
 
 const INITIAL_VIEW_STATE = {
   longitude: 35,
@@ -42,7 +43,6 @@ function DeckGLOverlay(props) {
 const Explorer7OctWar = () => {
   const { globalState } = useContext(GlobalStateContext);
   const [h3Resolution, setH3Resolution] = useState(10);
-  const [popupInfo, setPopupInfo] = useState();
   const mapRef = useRef();
   const timelineRef = useRef();
   const timelineHeight = 160;
@@ -69,11 +69,8 @@ const Explorer7OctWar = () => {
   const visibleTimelineDomain = useStore((state) => state.visibleTimelineDomain);
   const [mapReady, setMapReady] = useState(false);
   const [aggregationType, setAggregationType] = useState("h3");
-  const [superClusterMaxRadiusPixels, setSuperClusterMaxRadiusPixels] = useState(15);
-
-  useEffect(() => {
-    isH3ResolutionLockedRef.current = isH3ResolutionLocked;
-  }, [isH3ResolutionLocked]);
+  const tooltipRef = useRef(null);
+  const [eventTableData, setEventTableData] = useState([]);
 
   function calculateTimeBucket(density) {
     const base = 0.032;
@@ -126,13 +123,47 @@ const Explorer7OctWar = () => {
     if (units === "pixels") return Math.min(radiusPixels, 30) * symbolScale;
   }, []);
 
+  const updateTooltip = ({ object, x, y }) => {
+    if (object) {
+      tooltipRef.current.style.display = "block";
+      const tooltipWidth = tooltipRef.current.offsetWidth;
+      const tooltipHeight = tooltipRef.current.offsetHeight;
+      tooltipRef.current.style.left = `${x - tooltipWidth / 2}px`;
+      tooltipRef.current.style.top = `${y - tooltipHeight - 10}px`;
+      const metricText = selectedMetric === "EventCount" ? "events" : "fatalities";
+      tooltipRef.current.innerHTML = `${object.properties.actorName}: ${object.properties.count} ${metricText}`;
+    } else {
+      tooltipRef.current.style.display = "none";
+    }
+  };
+
   const pointLayer = new GeoJsonLayer({
     id: "point-layer",
     data: features,
     stroked: false,
     filled: true,
     pointType: "circle",
-    pickable: false,
+    pickable: true,
+    onHover: (info) => {
+      updateTooltip({ object: info.object, x: info.x, y: info.y });
+    },
+    onClick: (info) => {
+      if (info?.object?.properties?.h3Index) {
+        duckDBClient
+          .query(
+            `
+        SELECT *, make_timestamp(timestamp * 1000000) as timestamp, fatalities::INTEGER as fatalities
+        FROM acled_reports WHERE h3_cell_to_parent(h3_index, ${h3Resolution}) = '${info.object.properties.h3Index}' 
+        AND actor_id = ${info.object.properties.actorId} 
+        AND make_timestamp(timestamp * 1000000) BETWEEN '${visibleTimelineDomain[0].toISOString()}'::TIMESTAMP 
+        AND '${visibleTimelineDomain[1].toISOString()}'::TIMESTAMP ORDER BY timestamp;
+        `,
+          )
+          .then((data) => {
+            setEventTableData(data.toArray().map((row) => row.toJSON()));
+          });
+      }
+    },
     getFillColor: (d) => {
       const { r, g, b, a } = d.properties.color;
       return [r, g, b, a * 255];
@@ -241,7 +272,7 @@ const Explorer7OctWar = () => {
         GROUP BY h3_parent_index), 
         avg_cells AS (SELECT *, h3_local_ij_to_cell(h3_parent_center_index, avg_i::INT, avg_j::INT) AS avg_cell FROM avg_ij)
         SELECT 
-            *, 
+            h3_parent_index as h3Index,
             h3_cell_to_lat(avg_cell) as latitude, 
             h3_cell_to_lng(avg_cell) as longitude,
             h3_cell_area(avg_cell, 'km^2') AS cellArea,
@@ -348,7 +379,11 @@ const Explorer7OctWar = () => {
                   return circle.actorId === id;
                 })
                 ?.color.toRgb(),
+              actorName: selectedActors.find(({ id }) => circle.actorId === id)?.name,
+              actorId: circle.actorId,
+              count: row[`actor${circle.actorId}${selectedMetric}`],
               radius: circle.radius,
+              h3Index: row.h3Index,
               ...(i === 0 ? { ...row } : {}),
               presenceRadius: maxRadiusMeters * 0.5,
             },
@@ -356,11 +391,7 @@ const Explorer7OctWar = () => {
         })
         .flat();
 
-      const h3Indexes = mapTable
-        .filter((row) => row.h3Index)
-        .map((row) => {
-          return { ...row, h3Index: BigInt(row?.h3Index?.toString()).toString(16) };
-        });
+      const h3Indexes = mapTable.filter((row) => row.h3Index);
 
       return { features, h3Indexes, maxCount, maxRadiusMeters, maxRadiusPixels, timelineData };
     };
@@ -520,7 +551,7 @@ const Explorer7OctWar = () => {
   const paletteHex = colorBrewer.accent;
 
   return (
-    <div id="explorer-mosquito-alert">
+    <div id="explorer">
       {isDuckDBTablesLoading && (
         <div
           style={{
@@ -569,35 +600,22 @@ const Explorer7OctWar = () => {
           onLoad={() => setMapReady(true)}
           ref={mapRef}
         >
-          <DeckGLOverlay
-            layers={layers}
-            interleaved
-            getTooltip={({ object: d }) => {
-              if (!d) return null;
-              const descriptions = Object.entries(d)
-                .filter((d) => d[0].indexOf("EventCount") !== -1)
-                .map((d) => {
-                  return [
-                    d[0]
-                      .replace("EventCount", "")
-                      .replace(/([A-Z])/g, " $1")
-                      .toLowerCase()
-                      .replace(/^./, (str) => str.toUpperCase())
-                      .trim(),
-                    d[1],
-                  ];
-                })
-                .map(([name, value]) => `<div>${name}: ${value}</div>`)
-                .join("\n");
-              return { html: `${descriptions}` };
-            }}
-          />
+          <DeckGLOverlay layers={layers} interleaved />
           <NavigationControl showCompass={false} />
-          {popupInfo && (
-            <Popup anchor="top" longitude={Number(popupInfo.longitude)} latitude={Number(popupInfo.latitude)} onClose={() => setPopupInfo(null)}>
-              <img width="100%" alt="report" src={popupInfo.picture.data?.attributes.url} />
-            </Popup>
-          )}
+          <div
+            ref={tooltipRef}
+            style={{
+              display: "none",
+              position: "absolute",
+              zIndex: 1000,
+              padding: 5,
+              border: globalState.theme === "DARK" ? "0.5px solid #ffffff" : "1px solid #000000",
+              backgroundColor: globalState.theme === "DARK" ? "#000000" : "#ffffff",
+              color: globalState.theme === "DARK" ? "#ffffff" : "#000000",
+              pointerEvents: "none",
+              fontSize: 11,
+            }}
+          ></div>
         </ReactMapGL>
         <Button onClick={() => setIsDrawerOpen(true)} style={{ position: "absolute", top: 135, right: 10 }} icon={<SettingOutlined />} />
         <Drawer
@@ -682,6 +700,9 @@ const Explorer7OctWar = () => {
           />
         </div>
       )}
+      <Modal open={eventTableData?.length} width={800} onCancel={() => setEventTableData([])} zIndex={2000} footer={null}>
+        <EventTable data={eventTableData} />
+      </Modal>
     </div>
   );
 };

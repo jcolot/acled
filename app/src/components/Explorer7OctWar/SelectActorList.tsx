@@ -30,7 +30,7 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
           <List.Item style={{ display: "flex", justifyContent: "space-between", paddingInline: 16 }}>
             {actor.name}
             <div style={{ display: "flex", gap: 3 }}>
-              <ColorPicker format="rgb" defaultValue="rgba(10, 20, 250, 125)" onChange={(color) => onColorChange(actor.id, color)} />
+              <ColorPicker format="rgba" defaultValue="#2979be" onChange={(color) => onColorChange(actor.id, color)} />
               <Button
                 icon={<MinusOutlined />}
                 onClick={() => {
@@ -64,12 +64,10 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
               value={selectValue}
               defaultValue={undefined}
               autoClearSearchValue={true}
-              onFocus={() => console.log("focus")}
-              onBlur={() => console.log("blur")}
               onChange={(value) => {
                 const actor = actors.find(({ id }) => id === value);
                 setSelectedActors((selectedActors) => {
-                  const newActors = [...selectedActors, { ...actor, color: new ColorFactory("#1677ff") }];
+                  const newActors = [...selectedActors, { ...actor, color: new ColorFactory("#2979be") }];
                   onChange(newActors);
                   return newActors;
                 });

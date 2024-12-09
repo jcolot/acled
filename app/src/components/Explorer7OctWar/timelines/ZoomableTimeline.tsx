@@ -201,11 +201,12 @@ const createTimeline = (data, categories, metric, options: any) => {
                   div.style.position = "absolute";
                   div.style.pointerEvents = "none";
                   div.className = "timeline-tooltip";
+                  const metricText = metric === "EventCount" ? "events" : "fatalities";
                   const innerHTML = categories.map((category) => {
                     return `<div style="display: flex; align-items: center; margin-bottom: 5px;">
                       <div style="width: 10px; height: 10px; background-color: ${category.color.toRgbString()}; border-radius: 50%; margin-right: 5px;"></div>
                       <span style="font-size: 10px;">${category.name}:</span>
-                      <span style="font-size: 10px; margin-left: 5px;">${data[i][`actor${category.id}${metric}`]}</span> 
+                      <span style="font-size: 10px; margin-left: 5px;">${data[i][`actor${category.id}${metric}`]} ${metricText}</span> 
                     </div>`;
                   });
                   div.innerHTML = innerHTML.join("");
@@ -216,10 +217,11 @@ const createTimeline = (data, categories, metric, options: any) => {
                   div.style.top = event.pageY - divHeight - 10 + "px";
                   div.style.left = event.pageX - divWidth / 2 + "px";
                   div.style.visibility = "visible";
-                  div.style.backgroundColor = "white";
-                  div.style.fontSize = "10px";
+                  div.style.backgroundColor = theme === "LIGHT" ? "white" : "black";
+                  div.style.fontSize = "11px";
                   div.style.padding = "10px";
-                  div.style.border = "1px solid black";
+                  div.style.border = `0.5px solid ${theme === "LIGHT" ? "black" : "white"}`;
+                  div.style.color = theme === "LIGHT" ? "black" : "white";
                   div.style.zIndex = 10000;
                 })
                 .on("mousemove", function (event) {
@@ -345,6 +347,8 @@ const ZoomableTimeline = forwardRef(function Timeline(
   const containerRef = useRef(null);
   const timelineRef = useRef(null);
 
+  const tooltipRef = useRef(null);
+
   // Use useImperativeHandle to expose any internal functions you might need
   useImperativeHandle(fwdRef, () => ({
     updateData: (newData) => {
@@ -393,7 +397,11 @@ const ZoomableTimeline = forwardRef(function Timeline(
     }
   }, [data, selectedPeriod]);
 
-  return <div className="zoomable-timeline-container" ref={containerRef} style={style} />;
+  return (
+    <div className="zoomable-timeline-container" ref={containerRef} style={style}>
+      <div ref={tooltipRef} className="timeline-tooltip"></div>
+    </div>
+  );
 });
 
 export default ZoomableTimeline;
