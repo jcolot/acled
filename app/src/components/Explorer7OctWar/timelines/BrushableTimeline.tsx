@@ -12,7 +12,7 @@ const createTimeline = (data, categories, metric, options: any) => {
   const categoryKeys = (categories || []).map(({ id }) => {
     return `actor${id}${metric}`;
   });
-  const categoryColors = categories.map(({ color }) => color.toRgb()).map(({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, ${a})`);
+  const categoryColors = categories.map(({ color }) => color.toRgb()).map(({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, 0.7)`);
 
   const { brushedDomain, domain, height, width, onBrush, theme, colorScheme } = {
     min: new Date().setFullYear(new Date().getFullYear() - 1),

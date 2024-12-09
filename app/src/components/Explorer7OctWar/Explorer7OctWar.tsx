@@ -165,8 +165,8 @@ const Explorer7OctWar = () => {
       }
     },
     getFillColor: (d) => {
-      const { r, g, b, a } = d.properties.color;
-      return [r, g, b, a * 255];
+      const { r, g, b } = d.properties.color;
+      return [r, g, b, 150];
     },
     getPointRadius: (d) => d.properties.radius,
     opacity: 0.95,
@@ -312,7 +312,6 @@ const Explorer7OctWar = () => {
       let timelineData = [];
 
       if (selectedActors.length > 0) {
-        console.log("fetching data...");
         const mapArrow = await duckDBClient.query(mapH3AggregationQuery);
         const timelineArrow = await duckDBClient.query(timelineQuery);
         mapTable = mapArrow.toArray().map((row) => row.toJSON());

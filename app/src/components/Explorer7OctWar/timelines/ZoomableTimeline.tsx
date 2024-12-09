@@ -12,7 +12,7 @@ const createTimeline = (data, categories, metric, options: any) => {
     return `actor${id}${metric}`;
   });
 
-  const categoryColors = categories.map(({ color }) => color.toRgb()).map(({ r, g, b, a }) => `rgba(${r}, ${g}, ${b}, ${a})`);
+  const categoryColors = categories.map(({ color }) => color.toRgb()).map(({ r, g, b }) => `rgba(${r}, ${g}, ${b}, 0.7)`);
   const axis = {};
   const nodes = {};
   let zooming = false;

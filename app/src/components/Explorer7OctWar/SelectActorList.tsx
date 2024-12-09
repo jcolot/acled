@@ -30,7 +30,7 @@ const SelectActorList: React.FC = ({ onChange, actors, style }) => {
           <List.Item style={{ display: "flex", justifyContent: "space-between", paddingInline: 16 }}>
             {actor.name}
             <div style={{ display: "flex", gap: 3 }}>
-              <ColorPicker format="rgba" defaultValue="#2979be" onChange={(color) => onColorChange(actor.id, color)} />
+              <ColorPicker format="rgba" defaultValue="#2979be" onChange={(color) => onColorChange(actor.id, color)} disabledAlpha={true} />
               <Button
                 icon={<MinusOutlined />}
                 onClick={() => {
