@@ -168,6 +168,7 @@ const createTimeline = (data, categories, metric, options: any) => {
         marks: [
           stackedData.map((actorData, i) => {
             return Plot.rectY(actorData, {
+              className: "timeline-rect-y",
               x1: (d) => d.data.start,
               x2: (d) => d.data.end,
               y1: (d) => {
@@ -177,68 +178,60 @@ const createTimeline = (data, categories, metric, options: any) => {
               fill: categoryColors[i],
               insetLeft: 0.2,
               insetRight: 0.2,
-            });
-          }),
-          Plot.rectY(data, {
-            x1: (d) => d.start,
-            x2: (d) => d.end,
-            channels: {},
-            fill: "transparent",
-            y: (d) => {
-              return d[`total${metric}`];
-            },
-            render: (index, scales, values, dimensions, context, next) => {
-              const g = next(index, scales, values, dimensions, context, next);
-              const children = d3.select(g).selectChildren();
-              children
-                .on("click", function (event, i) {
-                  const selection = d3.select(event.target);
-                  const datum = data[i];
-                })
-                .on("mouseover", function (event, i) {
-                  const div = document.createElement("div");
-                  document.querySelector(".timeline-tooltip")?.remove();
-                  div.style.position = "absolute";
-                  div.style.pointerEvents = "none";
-                  div.className = "timeline-tooltip";
-                  const metricText = metric === "EventCount" ? "events" : "fatalities";
-                  const innerHTML = categories.map((category) => {
-                    return `<div style="display: flex; align-items: center; margin-bottom: 5px;">
+              render: (index, scales, values, dimensions, context, next) => {
+                const g = next(index, scales, values, dimensions, context, next);
+                const children = d3.select(g).selectChildren();
+                children
+                  .on("click", function (event, j) {
+                    const selection = d3.select(event.target);
+                    const datum = { ...actorData[j], actorId: categories[i].id };
+                    onItemClick && onItemClick(datum);
+                  })
+                  .on("mouseover", function (event, i) {
+                    const div = document.createElement("div");
+                    document.querySelector(".timeline-tooltip")?.remove();
+                    div.style.position = "absolute";
+                    div.style.pointerEvents = "none";
+                    div.className = "timeline-tooltip";
+                    const metricText = metric === "EventCount" ? "events" : "fatalities";
+                    const innerHTML = categories.map((category) => {
+                      return `<div style="display: flex; align-items: center; margin-bottom: 5px;">
                       <div style="width: 10px; height: 10px; background-color: ${category.color.toRgbString()}; border-radius: 50%; margin-right: 5px;"></div>
                       <span style="font-size: 10px;">${category.name}:</span>
-                      <span style="font-size: 10px; margin-left: 5px;">${data[i][`actor${category.id}${metric}`]} ${metricText}</span> 
+                      <span style="font-size: 10px; margin-left: 5px;">${data[i][`actor${category.id}${metric}`]} ${metricText}</span>
                     </div>`;
-                  });
-                  div.innerHTML = innerHTML.join("");
-                  document.body.appendChild(div);
-                  div.style.visibility = "hidden";
-                  const divHeight = div.getBoundingClientRect().height;
-                  const divWidth = div.getBoundingClientRect().width;
-                  div.style.top = event.pageY - divHeight - 10 + "px";
-                  div.style.left = event.pageX - divWidth / 2 + "px";
-                  div.style.visibility = "visible";
-                  div.style.backgroundColor = theme === "LIGHT" ? "white" : "black";
-                  div.style.fontSize = "11px";
-                  div.style.padding = "10px";
-                  div.style.border = `0.5px solid ${theme === "LIGHT" ? "black" : "white"}`;
-                  div.style.color = theme === "LIGHT" ? "black" : "white";
-                  div.style.zIndex = 10000;
-                })
-                .on("mousemove", function (event) {
-                  const div = document.querySelector(".timeline-tooltip");
-                  if (div) {
+                    });
+                    div.innerHTML = innerHTML.join("");
+                    document.body.appendChild(div);
+                    div.style.visibility = "hidden";
                     const divHeight = div.getBoundingClientRect().height;
                     const divWidth = div.getBoundingClientRect().width;
                     div.style.top = event.pageY - divHeight - 10 + "px";
                     div.style.left = event.pageX - divWidth / 2 + "px";
-                  }
-                })
-                .on("mouseout", function () {
-                  document.querySelector(".timeline-tooltip")?.remove();
-                });
+                    div.style.visibility = "visible";
+                    div.style.backgroundColor = theme === "LIGHT" ? "white" : "black";
+                    div.style.fontSize = "11px";
+                    div.style.padding = "10px";
+                    div.style.border = `0.5px solid ${theme === "LIGHT" ? "black" : "white"}`;
+                    div.style.color = theme === "LIGHT" ? "black" : "white";
+                    div.style.zIndex = 10000;
+                  })
+                  .on("mousemove", function (event) {
+                    const div = document.querySelector(".timeline-tooltip");
+                    if (div) {
+                      const divHeight = div.getBoundingClientRect().height;
+                      const divWidth = div.getBoundingClientRect().width;
+                      div.style.top = event.pageY - divHeight - 10 + "px";
+                      div.style.left = event.pageX - divWidth / 2 + "px";
+                    }
+                  })
+                  .on("mouseout", function () {
+                    document.querySelector(".timeline-tooltip")?.remove();
+                  });
 
-              return g;
-            },
+                return g;
+              },
+            });
           }),
           Plot.ruleY([0]),
         ],

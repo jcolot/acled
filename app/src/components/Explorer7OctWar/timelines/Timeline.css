@@ -47,4 +47,8 @@
     stroke: var(--level2-gridline-color);
 }
 
+.timeline .timeline-rect-y {
+    cursor: pointer;
+}
+
 

@@ -684,7 +684,21 @@ const Explorer7OctWar = () => {
               onTimelineZoom({ visibleDomain, density });
             }}
             theme={globalState.theme}
-            onItemClick={() => {}}
+            onItemClick={(item) => {
+              duckDBClient
+                .query(
+                  `
+                    SELECT *, make_timestamp(timestamp * 1000000) as timestamp, fatalities::INTEGER as fatalities
+                      FROM acled_reports WHERE  
+                      actor_id IN (${selectedActors.map(({ id }) => id).join(", ")})
+                      AND make_timestamp(timestamp * 1000000) BETWEEN '${new Date(item.data.start).toISOString()}'::TIMESTAMP 
+                      AND '${new Date(item.data.end).toISOString()}'::TIMESTAMP ORDER BY timestamp;
+                  `,
+                )
+                .then((data) => {
+                  setEventTableData(data.toArray().map((row) => row.toJSON()));
+                });
+            }}
           />
           <BrushableTimeline
             ref={brushableTimelineRef}
