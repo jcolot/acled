@@ -195,8 +195,8 @@ const createTimeline = (data, categories, metric, options: any) => {
                     div.className = "timeline-tooltip";
                     const metricText = metric === "EventCount" ? "events" : "fatalities";
                     const innerHTML = categories.map((category) => {
-                      return `<div style="display: flex; align-items: center; margin-bottom: 5px;">
-                      <div style="width: 10px; height: 10px; background-color: ${category.color.toRgbString()}; border-radius: 50%; margin-right: 5px;"></div>
+                      return `<div style="display: flex; align-items: center; margin-bottom: 3px;">
+                      <div style="width: 12px; height: 12px; background-color: ${category.color.toRgbString()}; border-radius: 50%; margin-right: 5px;"></div>
                       <span style="font-size: 10px;">${category.name}:</span>
                       <span style="font-size: 10px; margin-left: 5px;">${data[i][`actor${category.id}${metric}`]} ${metricText}</span>
                     </div>`;

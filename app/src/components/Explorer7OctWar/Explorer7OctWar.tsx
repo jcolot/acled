@@ -130,12 +130,21 @@ const Explorer7OctWar = () => {
       tooltipRef.current.style.left = `${x - tooltipWidth / 2}px`;
       tooltipRef.current.style.top = `${y - tooltipHeight - 10}px`;
       const metricText = selectedMetric === "EventCount" ? "events" : "fatalities";
-      tooltipRef.current.innerHTML = `${object.properties.actorName}: ${object.properties.count} ${metricText}`;
+      const { r, g, b } = object.properties.color;
+      const color = `rgb(${r}, ${g}, ${b})`;
+
+      const innerHTML = `
+        <div style="display: flex; align-items: center; margin-bottom: 3px;">
+          <div style="width: 12px; height: 12px; background-color: ${color}; border-radius: 50%; margin-right: 5px;"></div>
+            <span style="font-size: 10px;">${object.properties.actorName}: ${object.properties.count} ${metricText}</span>
+          </div>
+        </div>
+        `;
+      tooltipRef.current.innerHTML = innerHTML;
     } else {
       tooltipRef.current.style.display = "none";
     }
   };
-
   const pointLayer = new GeoJsonLayer({
     id: "point-layer",
     data: features,
