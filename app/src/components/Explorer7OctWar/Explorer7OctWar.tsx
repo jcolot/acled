@@ -43,7 +43,6 @@ function DeckGLOverlay(props) {
 const Explorer7OctWar = () => {
   const { globalState } = useContext(GlobalStateContext);
   const [h3Resolution, setH3Resolution] = useState(10);
-  const mapRef = useRef();
   const timelineRef = useRef();
   const timelineHeight = 160;
   const [loading, setLoading] = useState(false);
@@ -61,13 +60,13 @@ const Explorer7OctWar = () => {
   const [selectedMetric, setSelectedMetric] = useState("EventCount");
   const [selectedEventTypeId, setSelectedEventTypeId] = useState(null);
   const [layerType, setLayerType] = useState("packed-circles");
+  const [map, setMap] = useState(null);
   const [symbolScale, setSymbolScale] = useState(1);
   const [isH3ResolutionLocked, setIsH3ResolutionLocked] = useState(false);
   const isH3ResolutionLockedRef = useRef(isH3ResolutionLocked);
   const brushableTimelineRef = useRef();
   const setVisibleTimelineDomain = useStore((state) => state.setVisibleTimelineDomain);
   const visibleTimelineDomain = useStore((state) => state.visibleTimelineDomain);
-  const [mapReady, setMapReady] = useState(false);
   const [aggregationType, setAggregationType] = useState("h3");
   const tooltipRef = useRef(null);
   const [eventTableData, setEventTableData] = useState([]);
@@ -79,7 +78,7 @@ const Explorer7OctWar = () => {
     if (density > base * 4 * 24 * 7) return "1 month";
     if (density > base * 4 * 24) return "1 week";
     if (density > base * 4) return "1 day";
-    return "1 hour";
+    return "1 day";
   }
 
   const getH3Resolution = useCallback((zoom, latitude = 0, longitude = 0, targetRadiusPixels = 50, min = 0, max = 15) => {
@@ -154,7 +153,8 @@ const Explorer7OctWar = () => {
             `
         SELECT *, make_timestamp(timestamp * 1000000) as timestamp, fatalities::INTEGER as fatalities
         FROM acled_reports WHERE h3_cell_to_parent(h3_index, ${h3Resolution}) = '${info.object.properties.h3Index}' 
-        AND actor_id = ${info.object.properties.actorId} 
+        AND actor_id IN (${selectedActors.map(({ id }) => id).join(", ")})
+        AND event_type_id = ${selectedEventTypeId}
         AND make_timestamp(timestamp * 1000000) BETWEEN '${visibleTimelineDomain[0].toISOString()}'::TIMESTAMP 
         AND '${visibleTimelineDomain[1].toISOString()}'::TIMESTAMP ORDER BY timestamp;
         `,
@@ -242,6 +242,23 @@ const Explorer7OctWar = () => {
     { enabled: !!duckDBClient },
   );
 
+  const mapRef = useCallback((map) => {
+    if (map !== null) {
+      setMap(map);
+      const { _sw, _ne } = map.getBounds();
+      const maxLat = _ne.lat;
+      const minLat = _sw.lat;
+      const maxLng = _ne.lng;
+      const minLng = _sw.lng;
+      const zoom = map.getZoom();
+      const latitude = map.getCenter().lat;
+      const longitude = map.getCenter().lng;
+      const newH3Resolution = getH3Resolution(zoom, latitude, longitude, 15);
+      setMapBounds({ maxLat, minLat, maxLng, minLng });
+      setH3Resolution(newH3Resolution);
+    }
+  }, []);
+
   useEffect(() => {
     const fetchData = async (duckDBClient) => {
       const mapH3AggregationQuery = `
@@ -319,11 +336,11 @@ const Explorer7OctWar = () => {
       }
 
       await setLoading(true);
-      const zoom = mapRef.current?.getZoom() || 15;
+      const zoom = map?.getZoom() || 15;
 
       let features: Feature[] = [];
-      const latitude = mapRef.current.getCenter().lat;
-      const longitude = mapRef.current.getCenter().lng;
+      const latitude = map?.getCenter().lat || 0;
+      const longitude = map?.getCenter().lng || 0;
 
       const maxRadiusMeters = getMaxRadius(h3Resolution, zoom, latitude, longitude, "meters");
       const maxRadiusPixels = getMaxRadius(h3Resolution, zoom, latitude, longitude, "pixels");
@@ -409,6 +426,7 @@ const Explorer7OctWar = () => {
     h3Resolution,
     visibleTimelineDomain,
     mapBounds,
+    map,
     selectedActors,
     selectedMetric,
     selectedEventTypeId,
@@ -465,9 +483,8 @@ const Explorer7OctWar = () => {
   }, [duckDBClient, mapBounds, selectedActors, selectedMetric]);
 
   useEffect(() => {
-    if (mapRef.current) {
+    if (map) {
       const handleZoom = ({ viewState, target }) => {
-        const { transform } = target;
         const { zoom, latitude, longitude } = viewState;
         const min = 0;
         const max = 12;
@@ -475,8 +492,8 @@ const Explorer7OctWar = () => {
         if (!isH3ResolutionLockedRef.current && newH3Resolution !== h3Resolution) {
           setH3Resolution(newH3Resolution);
         }
-        if (mapRef.current && mapRef.current.getBounds) {
-          const { _sw, _ne } = mapRef.current.getBounds();
+        if (map?.getBounds) {
+          const { _sw, _ne } = map.getBounds();
           const maxLat = _ne.lat;
           const minLat = _sw.lat;
           const maxLng = _ne.lng;
@@ -487,8 +504,8 @@ const Explorer7OctWar = () => {
 
       // Function to handle map movements
       const handleMove = () => {
-        if (mapRef.current && mapRef.current.getBounds) {
-          const { _sw, _ne } = mapRef.current.getBounds();
+        if (map && map.getBounds) {
+          const { _sw, _ne } = map.getBounds();
           const maxLat = _ne.lat;
           const minLat = _sw.lat;
           const maxLng = _ne.lng;
@@ -497,17 +514,17 @@ const Explorer7OctWar = () => {
         }
       };
 
-      mapRef.current.on("zoom", handleZoom);
-      mapRef.current.on("drag", handleMove);
+      map.on("zoom", handleZoom);
+      map.on("drag", handleMove);
     }
 
     return () => {
-      if (mapRef.current) {
-        mapRef.current.off("zoom");
-        mapRef.current.off("drag");
+      if (map) {
+        map.off("zoom");
+        map.off("drag");
       }
     };
-  }, [mapReady]);
+  }, [map]);
 
   useEffect(() => {
     if (features) {
@@ -596,10 +613,10 @@ const Explorer7OctWar = () => {
           initialViewState={INITIAL_VIEW_STATE}
           mapboxAccessToken={process.env.MAPBOX_ACCESS_TOKEN}
           mapStyle={mapStyle}
-          onLoad={() => setMapReady(true)}
+          maxZoom={13}
           ref={mapRef}
         >
-          <DeckGLOverlay layers={layers} interleaved />
+          <DeckGLOverlay layers={layers} />
           <NavigationControl showCompass={false} />
           <div
             ref={tooltipRef}
@@ -692,7 +709,12 @@ const Explorer7OctWar = () => {
                       FROM acled_reports WHERE  
                       actor_id IN (${selectedActors.map(({ id }) => id).join(", ")})
                       AND make_timestamp(timestamp * 1000000) BETWEEN '${new Date(item.data.start).toISOString()}'::TIMESTAMP 
-                      AND '${new Date(item.data.end).toISOString()}'::TIMESTAMP ORDER BY timestamp;
+                      AND '${new Date(item.data.end).toISOString()}'::TIMESTAMP
+                      AND latitude 
+                      AND latitude BETWEEN ${mapBounds.minLat} AND ${mapBounds.maxLat} 
+                      AND longitude BETWEEN ${mapBounds.minLng} AND ${mapBounds.maxLng}
+                      AND event_type_id = ${selectedEventTypeId}
+                      ORDER BY timestamp;
                   `,
                 )
                 .then((data) => {
@@ -713,7 +735,7 @@ const Explorer7OctWar = () => {
           />
         </div>
       )}
-      <Modal open={eventTableData?.length} width={800} onCancel={() => setEventTableData([])} zIndex={2000} footer={null}>
+      <Modal open={eventTableData?.length} width={800} onCancel={() => setEventTableData([])} zIndex={10000} footer={null}>
         <EventTable data={eventTableData} />
       </Modal>
     </div>

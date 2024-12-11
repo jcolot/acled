@@ -26,7 +26,6 @@ const columns = [
 ];
 
 const EventTable = ({ data }) => {
-  console.log(data);
   return <Table columns={columns} dataSource={data} />;
 };
 
